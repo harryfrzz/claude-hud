@@ -75,6 +75,13 @@ export interface TranscriptData {
   sessionName?: string;
 }
 
+export interface MemoryInfo {
+  totalBytes: number;
+  usedBytes: number;
+  freeBytes: number;
+  percent: number;
+}
+
 export interface RenderContext {
   stdin: StdinData;
   transcript: TranscriptData;
@@ -85,6 +92,7 @@ export interface RenderContext {
   sessionDuration: string;
   gitStatus: GitStatus | null;
   usageData: UsageData | null;
+  memoryUsage: MemoryInfo | null;
   config: HudConfig;
   extraLabel: string | null;
 }

@@ -7,7 +7,7 @@ export type LineLayoutType = 'compact' | 'expanded';
 
 export type AutocompactBufferMode = 'enabled' | 'disabled';
 export type ContextValueMode = 'percent' | 'tokens' | 'remaining';
-export type HudElement = 'project' | 'context' | 'usage' | 'environment' | 'tools' | 'agents' | 'todos';
+export type HudElement = 'project' | 'context' | 'usage' | 'memory' | 'environment' | 'tools' | 'agents' | 'todos';
 export type HudColorName =
   | 'red'
   | 'green'
@@ -32,6 +32,7 @@ export const DEFAULT_ELEMENT_ORDER: HudElement[] = [
   'project',
   'context',
   'usage',
+  'memory',
   'environment',
   'tools',
   'agents',
@@ -62,6 +63,8 @@ export interface HudConfig {
     showTokenBreakdown: boolean;
     showUsage: boolean;
     usageBarEnabled: boolean;
+    showMemoryUsage: boolean;
+    memoryThreshold: number;
     showTools: boolean;
     showAgents: boolean;
     showTodos: boolean;
@@ -101,6 +104,8 @@ export const DEFAULT_CONFIG: HudConfig = {
     showTokenBreakdown: true,
     showUsage: true,
     usageBarEnabled: true,
+    showMemoryUsage: false,
+    memoryThreshold: 80,
     showTools: false,
     showAgents: false,
     showTodos: false,
@@ -292,6 +297,10 @@ export function mergeConfig(userConfig: Partial<HudConfig>): HudConfig {
     usageBarEnabled: typeof migrated.display?.usageBarEnabled === 'boolean'
       ? migrated.display.usageBarEnabled
       : DEFAULT_CONFIG.display.usageBarEnabled,
+    showMemoryUsage: typeof migrated.display?.showMemoryUsage === 'boolean'
+      ? migrated.display.showMemoryUsage
+      : DEFAULT_CONFIG.display.showMemoryUsage,
+    memoryThreshold: validateThreshold(migrated.display?.memoryThreshold, 100),
     showTools: typeof migrated.display?.showTools === 'boolean'
       ? migrated.display.showTools
       : DEFAULT_CONFIG.display.showTools,

@@ -4,6 +4,7 @@ import { render } from './render/index.js';
 import { countConfigs } from './config-reader.js';
 import { getGitStatus } from './git.js';
 import { getUsage } from './usage-api.js';
+import { getMemoryUsage } from './memory.js';
 import { loadConfig } from './config.js';
 import { parseExtraCmdArg, runExtraCmd } from './extra-cmd.js';
 import type { RenderContext } from './types.js';
@@ -16,6 +17,7 @@ export type MainDeps = {
   countConfigs: typeof countConfigs;
   getGitStatus: typeof getGitStatus;
   getUsage: typeof getUsage;
+  getMemoryUsage: typeof getMemoryUsage;
   loadConfig: typeof loadConfig;
   parseExtraCmdArg: typeof parseExtraCmdArg;
   runExtraCmd: typeof runExtraCmd;
@@ -31,6 +33,7 @@ export async function main(overrides: Partial<MainDeps> = {}): Promise<void> {
     countConfigs,
     getGitStatus,
     getUsage,
+    getMemoryUsage,
     loadConfig,
     parseExtraCmdArg,
     runExtraCmd,
@@ -73,6 +76,10 @@ export async function main(overrides: Partial<MainDeps> = {}): Promise<void> {
         })
       : null;
 
+    const memoryUsage = config.display.showMemoryUsage
+      ? await deps.getMemoryUsage()
+      : null;
+
     const extraCmd = deps.parseExtraCmdArg();
     const extraLabel = extraCmd ? await deps.runExtraCmd(extraCmd) : null;
 
@@ -88,6 +95,7 @@ export async function main(overrides: Partial<MainDeps> = {}): Promise<void> {
       sessionDuration,
       gitStatus,
       usageData,
+      memoryUsage,
       config,
       extraLabel,
     };
