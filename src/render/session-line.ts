@@ -2,6 +2,7 @@ import type { RenderContext } from '../types.js';
 import { isLimitReached } from '../types.js';
 import { getContextPercent, getBufferedPercent, getModelName, getProviderLabel, getTotalTokens } from '../stdin.js';
 import { getOutputSpeed } from '../speed-tracker.js';
+import { detectCompaction } from '../compaction.js';
 import { coloredBar, critical, git as gitColor, gitBranch as gitBranchColor, label, model as modelColor, project as projectColor, red, getContextColor, getQuotaColor, quotaBar, custom as customColor, RESET } from './colors.js';
 import { getAdaptiveBarWidth } from '../utils/terminal.js';
 
@@ -29,6 +30,13 @@ export function renderSessionLine(ctx: RenderContext): string {
 
   const parts: string[] = [];
   const display = ctx.config?.display;
+  
+  const showCompactionCount = display?.showCompactionCount ?? false;
+  let compactionCount = 0;
+  if (showCompactionCount) {
+    compactionCount = detectCompaction(percent);
+  }
+  
   const contextValueMode = display?.contextValue ?? 'percent';
   const contextValue = formatContextValue(ctx, percent, contextValueMode);
   const contextValueDisplay = `${getContextColor(percent, colors)}${contextValue}${RESET}`;
@@ -41,11 +49,13 @@ export function renderSessionLine(ctx: RenderContext): string {
   const modelDisplay = modelQualifier ? `${model} | ${modelQualifier}` : model;
 
   if (display?.showModel !== false && display?.showContextBar !== false) {
-    parts.push(`${modelColor(`[${modelDisplay}]`, colors)} ${bar} ${contextValueDisplay}`);
+    const compactionStr = (showCompactionCount && compactionCount > 0) ? ` ${label(`(⟳ ${compactionCount})`, colors)}` : '';
+    parts.push(`${modelColor(`[${modelDisplay}]`, colors)} ${bar} ${contextValueDisplay}${compactionStr}`);
   } else if (display?.showModel !== false) {
     parts.push(`${modelColor(`[${modelDisplay}]`, colors)} ${contextValueDisplay}`);
   } else if (display?.showContextBar !== false) {
-    parts.push(`${bar} ${contextValueDisplay}`);
+    const compactionStr = (showCompactionCount && compactionCount > 0) ? ` ${label(`(⟳ ${compactionCount})`, colors)}` : '';
+    parts.push(`${bar} ${contextValueDisplay}${compactionStr}`);
   } else {
     parts.push(contextValueDisplay);
   }

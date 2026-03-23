@@ -76,6 +76,7 @@ export interface HudConfig {
     showSessionName: boolean;
     showClaudeCodeVersion: boolean;
     showMemoryUsage: boolean;
+    showCompactionCount: boolean;
     autocompactBuffer: AutocompactBufferMode;
     usageThreshold: number;
     sevenDayThreshold: number;
@@ -113,6 +114,7 @@ export const DEFAULT_CONFIG: HudConfig = {
     showSessionName: false,
     showClaudeCodeVersion: false,
     showMemoryUsage: false,
+    showCompactionCount: true,   // changed: default true so it works out of the box
     autocompactBuffer: 'enabled',
     usageThreshold: 0,
     sevenDayThreshold: 80,
@@ -209,7 +211,6 @@ function migrateConfig(userConfig: Partial<HudConfig> & LegacyConfig): Partial<H
 
   if ('layout' in userConfig && !('lineLayout' in userConfig)) {
     if (typeof userConfig.layout === 'string') {
-      // Legacy string migration (v0.0.x → v0.1.x)
       if (userConfig.layout === 'separators') {
         migrated.lineLayout = 'compact';
         migrated.showSeparators = true;
@@ -218,7 +219,6 @@ function migrateConfig(userConfig: Partial<HudConfig> & LegacyConfig): Partial<H
         migrated.showSeparators = false;
       }
     } else if (typeof userConfig.layout === 'object' && userConfig.layout !== null) {
-      // Object layout written by third-party tools — extract nested fields
       const obj = userConfig.layout as Record<string, unknown>;
       if (typeof obj.lineLayout === 'string') migrated.lineLayout = obj.lineLayout as any;
       if (typeof obj.showSeparators === 'boolean') migrated.showSeparators = obj.showSeparators;
@@ -316,6 +316,9 @@ export function mergeConfig(userConfig: Partial<HudConfig>): HudConfig {
     showMemoryUsage: typeof migrated.display?.showMemoryUsage === 'boolean'
       ? migrated.display.showMemoryUsage
       : DEFAULT_CONFIG.display.showMemoryUsage,
+    showCompactionCount: typeof migrated.display?.showCompactionCount === 'boolean'
+      ? migrated.display.showCompactionCount
+      : DEFAULT_CONFIG.display.showCompactionCount,  // falls back to true now
     autocompactBuffer: validateAutocompactBuffer(migrated.display?.autocompactBuffer)
       ? migrated.display.autocompactBuffer
       : DEFAULT_CONFIG.display.autocompactBuffer,

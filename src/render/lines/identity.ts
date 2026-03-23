@@ -1,5 +1,6 @@
 import type { RenderContext } from '../../types.js';
 import { getContextPercent, getBufferedPercent, getTotalTokens } from '../../stdin.js';
+import { detectCompaction } from '../../compaction.js';
 import { coloredBar, label, getContextColor, RESET } from '../colors.js';
 import { getAdaptiveBarWidth } from '../../utils/terminal.js';
 
@@ -10,6 +11,7 @@ export function renderIdentityLine(ctx: RenderContext): string {
   const bufferedPercent = getBufferedPercent(ctx.stdin);
   const autocompactMode = ctx.config?.display?.autocompactBuffer ?? 'enabled';
   const percent = autocompactMode === 'disabled' ? rawPercent : bufferedPercent;
+
   const colors = ctx.config?.colors;
 
   if (DEBUG && autocompactMode === 'disabled') {
@@ -17,6 +19,10 @@ export function renderIdentityLine(ctx: RenderContext): string {
   }
 
   const display = ctx.config?.display;
+
+  const compactionCount = detectCompaction(percent);
+  const showCompactionCount = display?.showCompactionCount ?? true;
+
   const contextValueMode = display?.contextValue ?? 'percent';
   const contextValue = formatContextValue(ctx, percent, contextValueMode);
   const contextValueDisplay = `${getContextColor(percent, colors)}${contextValue}${RESET}`;
@@ -24,6 +30,10 @@ export function renderIdentityLine(ctx: RenderContext): string {
   let line = display?.showContextBar !== false
     ? `${label('Context', colors)} ${coloredBar(percent, getAdaptiveBarWidth(), colors)} ${contextValueDisplay}`
     : `${label('Context', colors)} ${contextValueDisplay}`;
+
+  if (showCompactionCount && compactionCount > 0) {
+    line += ` ${label(`(⟳ ${compactionCount})`, colors)}`;
+  }
 
   if (display?.showTokenBreakdown !== false && percent >= 85) {
     const usage = ctx.stdin.context_window?.current_usage;
