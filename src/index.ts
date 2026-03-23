@@ -1,24 +1,27 @@
-import { readStdin } from './stdin.js';
+import { readStdin, getUsageFromStdin } from './stdin.js';
 import { parseTranscript } from './transcript.js';
 import { render } from './render/index.js';
 import { countConfigs } from './config-reader.js';
 import { getGitStatus } from './git.js';
-import { getUsage } from './usage-api.js';
 import { loadConfig } from './config.js';
 import { parseExtraCmdArg, runExtraCmd } from './extra-cmd.js';
+import { getClaudeCodeVersion } from './version.js';
+import { getMemoryUsage } from './memory.js';
 import type { RenderContext } from './types.js';
 import { fileURLToPath } from 'node:url';
 import { realpathSync } from 'node:fs';
 
 export type MainDeps = {
   readStdin: typeof readStdin;
+  getUsageFromStdin: typeof getUsageFromStdin;
   parseTranscript: typeof parseTranscript;
   countConfigs: typeof countConfigs;
   getGitStatus: typeof getGitStatus;
-  getUsage: typeof getUsage;
   loadConfig: typeof loadConfig;
   parseExtraCmdArg: typeof parseExtraCmdArg;
   runExtraCmd: typeof runExtraCmd;
+  getClaudeCodeVersion: typeof getClaudeCodeVersion;
+  getMemoryUsage: typeof getMemoryUsage;
   render: typeof render;
   now: () => number;
   log: (...args: unknown[]) => void;
@@ -27,13 +30,15 @@ export type MainDeps = {
 export async function main(overrides: Partial<MainDeps> = {}): Promise<void> {
   const deps: MainDeps = {
     readStdin,
+    getUsageFromStdin,
     parseTranscript,
     countConfigs,
     getGitStatus,
-    getUsage,
     loadConfig,
     parseExtraCmdArg,
     runExtraCmd,
+    getClaudeCodeVersion,
+    getMemoryUsage,
     render,
     now: () => Date.now(),
     log: console.log,
@@ -63,20 +68,22 @@ export async function main(overrides: Partial<MainDeps> = {}): Promise<void> {
       ? await deps.getGitStatus(stdin.cwd)
       : null;
 
-    // Only fetch usage if enabled in config (replaces env var requirement)
-    const usageData = config.display.showUsage !== false
-      ? await deps.getUsage({
-          ttls: {
-            cacheTtlMs: config.usage.cacheTtlSeconds * 1000,
-            failureCacheTtlMs: config.usage.failureCacheTtlSeconds * 1000,
-          },
-        })
-      : null;
+    // Usage comes only from Claude Code's official stdin rate_limits fields.
+    let usageData: RenderContext['usageData'] = null;
+    if (config.display.showUsage !== false) {
+      usageData = deps.getUsageFromStdin(stdin);
+    }
 
     const extraCmd = deps.parseExtraCmdArg();
     const extraLabel = extraCmd ? await deps.runExtraCmd(extraCmd) : null;
 
     const sessionDuration = formatSessionDuration(transcript.sessionStart, deps.now);
+    const claudeCodeVersion = config.display.showClaudeCodeVersion
+      ? await deps.getClaudeCodeVersion()
+      : undefined;
+    const memoryUsage = config.display.showMemoryUsage && config.lineLayout === 'expanded'
+      ? await deps.getMemoryUsage()
+      : null;
 
     const ctx: RenderContext = {
       stdin,
@@ -88,8 +95,10 @@ export async function main(overrides: Partial<MainDeps> = {}): Promise<void> {
       sessionDuration,
       gitStatus,
       usageData,
+      memoryUsage,
       config,
       extraLabel,
+      claudeCodeVersion,
     };
 
     deps.render(ctx);
